@@ -3,5 +3,3 @@
 local.settings.json
 test
 .venv
-.gitignore
-.gitattributes
