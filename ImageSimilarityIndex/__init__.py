@@ -8,6 +8,7 @@ from PIL import Image
 from .ImageSimilarityNet import model
 
 MAX_REQUEST_LENGTH = 10_485_760
+IMG_FETCH_TIMEOUT_SEC = 5
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -55,13 +56,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def process_url_attachment(url: str) -> Image:
+    response = requests.get(url, stream=True, timeout=IMG_FETCH_TIMEOUT_SEC)
+
+    # content = response.raw.read(MAX_REQUEST_LENGTH + 1, decode_content=True)
+    content = response.raw.read(MAX_REQUEST_LENGTH + 1)
+    if len(content) > MAX_REQUEST_LENGTH:
+        raise ValueError(
+            "Image file is bigger than allowed limit ({MAX_REQUEST_LENGTH} bytes)")
+
     try:
-        # TODO: timeout
-        # TODO: size check
-        response = requests.get(url, stream=True)
-        return Image.open(response.raw)
+        return Image.open(io.BytesIO(content))
     except:
-        raise ValueError("Can't download image from provider URL")
+        raise ValueError("Can't read downloaded image")
 
 
 def process_b64_attachment(content: str) -> Image:
