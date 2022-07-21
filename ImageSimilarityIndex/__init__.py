@@ -7,15 +7,19 @@ from asyncio.log import logger
 from PIL import Image
 from .ImageSimilarityNet import model
 
+MAX_REQUEST_LENGTH = 10_485_760
+
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    # TODO: request size limit
     headers = {
         "Content-type": "application/json",
         "Access-Control-Allow-Origin": "*"
     }
 
     try:
+        if(len(req.get_body()) > MAX_REQUEST_LENGTH):
+            raise ValueError(
+                f"Request body is more than {MAX_REQUEST_LENGTH} bytes")
         try:
             req_body = req.get_json()
             # Check JSON structure
