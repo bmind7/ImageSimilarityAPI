@@ -2,6 +2,7 @@ import json
 import base64
 import io
 import requests
+import asyncio
 import azure.functions as func
 from asyncio.log import logger
 from PIL import Image
@@ -10,8 +11,10 @@ from .ImageSimilarityNet import model
 MAX_REQUEST_LENGTH = 10_485_760
 IMG_FETCH_TIMEOUT_SEC = 5
 
+model_lock = asyncio.Lock()
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+
+async def main(req: func.HttpRequest) -> func.HttpResponse:
     headers = {
         "Content-type": "application/json",
         "Access-Control-Allow-Origin": "*"
@@ -21,6 +24,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         if(len(req.get_body()) > MAX_REQUEST_LENGTH):
             raise ValueError(
                 f"Request body is more than {MAX_REQUEST_LENGTH} bytes")
+
         try:
             req_body = req.get_json()
             # Check JSON structure
@@ -32,17 +36,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         except:
             raise ValueError("Can't parse request JSON body")
 
+        eventloop = asyncio.get_event_loop()
+
         if(req_body['image_a']['type'] == "url"):
-            img = process_url_attachment(req_body['image_a']['content'])
+            img = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_a']['content'])
         else:
             img = process_b64_attachment(req_body['image_a']['content'])
 
         if(req_body['image_b']['type'] == "url"):
-            img2 = process_url_attachment(req_body['image_b']['content'])
+            img2 = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_b']['content'])
         else:
             img2 = process_b64_attachment(req_body['image_b']['content'])
 
-        sim_index = model.calculate(img, img2)
+        async with model_lock:
+            sim_index = await eventloop.run_in_executor(None, model.calculate, img, img2)
 
         logger.info("Image similarity: " + str(sim_index))
         results = {'sim_index': sim_index}
@@ -58,7 +65,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 def process_url_attachment(url: str) -> Image:
     response = requests.get(url, stream=True, timeout=IMG_FETCH_TIMEOUT_SEC)
 
-    # content = response.raw.read(MAX_REQUEST_LENGTH + 1, decode_content=True)
     content = response.raw.read(MAX_REQUEST_LENGTH + 1)
     if len(content) > MAX_REQUEST_LENGTH:
         raise ValueError(
