@@ -71,7 +71,7 @@ def process_url_attachment(url: str) -> Image:
             "Image file is bigger than allowed limit ({MAX_REQUEST_LENGTH} bytes)")
 
     try:
-        return Image.open(io.BytesIO(content))
+        return Image.open(io.BytesIO(content)).convert("RGB")
     except:
         raise ValueError("Can't read downloaded image")
 
@@ -79,7 +79,7 @@ def process_url_attachment(url: str) -> Image:
 def process_b64_attachment(content: str) -> Image:
     try:
         base64_decoded = base64.b64decode(content.split(',')[1])
-        img = Image.open(io.BytesIO(base64_decoded))
+        img = Image.open(io.BytesIO(base64_decoded)).convert("RGB")
         return img
     except:
         raise ValueError("Can't parse base64 image data")
