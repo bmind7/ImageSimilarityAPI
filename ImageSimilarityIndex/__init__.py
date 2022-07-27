@@ -21,32 +21,32 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
     }
 
     try:
-        if(len(req.get_body()) > MAX_REQUEST_LENGTH):
+        if len(req.get_body()) > MAX_REQUEST_LENGTH:
             raise ValueError(
                 f"Request body is more than {MAX_REQUEST_LENGTH} bytes")
 
         try:
             req_body = req.get_json()
             # Check JSON structure
-            if req_body['image_a']['type'] == None or \
-               req_body['image_b']['type'] == None or \
-               req_body['image_a']['content'] == None or \
-               req_body['image_b']['content'] == None:
+            if req_body['image_a'] == None or \
+               req_body['image_b'] == None or \
+               len(req_body['image_a']) == 0 or \
+               len(req_body['image_b']) == 0:
                 raise "Wrong JSON structure"
         except:
             raise ValueError("Can't parse request JSON body")
 
         eventloop = asyncio.get_event_loop()
 
-        if(req_body['image_a']['type'] == "url"):
-            img = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_a']['content'])
+        if req_body['image_a'].startswith("http"):
+            img = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_a'])
         else:
-            img = process_b64_attachment(req_body['image_a']['content'])
+            img = process_b64_attachment(req_body['image_a'])
 
-        if(req_body['image_b']['type'] == "url"):
-            img2 = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_b']['content'])
+        if req_body['image_b'].startswith("http"):
+            img2 = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_b'])
         else:
-            img2 = process_b64_attachment(req_body['image_b']['content'])
+            img2 = process_b64_attachment(req_body['image_b'])
 
         async with model_lock:
             sim_index = await eventloop.run_in_executor(None, model.calculate, img, img2)
