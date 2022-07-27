@@ -49,10 +49,10 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
             img2 = process_b64_attachment(req_body['image_b'])
 
         async with model_lock:
-            sim_index = await eventloop.run_in_executor(None, model.calculate, img, img2)
+            sim_score = await eventloop.run_in_executor(None, model.calculate, img, img2)
 
-        logger.info("Image similarity: " + str(sim_index))
-        results = {'sim_index': sim_index}
+        logger.info("Image similarity: " + str(sim_score))
+        results = {'similarity_score': sim_score}
         status_code = 200
     except Exception as e:
         logger.error(str(e))
