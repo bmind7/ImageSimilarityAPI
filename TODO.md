@@ -1,4 +1,3 @@
-* modify documentation to add info about parallel execution and cold start
 * limit number of requests per instance to 4
 * make image loading parallel
 * try Pytorch JIT
