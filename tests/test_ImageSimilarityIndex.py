@@ -93,6 +93,23 @@ async def test_post_base64_incorrect():
 
 
 @pytest.mark.asyncio
+async def test_post_url_image_too_big():
+    with open("./tests/url_image_too_big.json", "rb") as f:
+        json = f.read()
+
+    # Construct a mock HTTP request.
+    req = func.HttpRequest(
+        method='POST',
+        body=json,
+        url='/api/imagesimilarityindex')
+
+    resp = await main(req)
+
+    assert resp.get_body().startswith(
+        b'{"error": "Image file is bigger than allowed limit')
+
+
+@pytest.mark.asyncio
 async def test_post_url_and_base64_correct():
     with open("./tests/url_and_base64_correct.json", "rb") as f:
         json = f.read()
