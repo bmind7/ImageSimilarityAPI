@@ -21,6 +21,9 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
     }
 
     try:
+        if req.get_body() == None:
+            raise ValueError(f"Request body is empty")
+
         if len(req.get_body()) > MAX_REQUEST_LENGTH:
             raise ValueError(
                 f"Request body is more than {MAX_REQUEST_LENGTH} bytes")
@@ -63,7 +66,14 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def process_url_attachment(url: str) -> Image:
-    response = requests.get(url, stream=True, timeout=IMG_FETCH_TIMEOUT_SEC)
+    try:
+        response = requests.get(
+            url, stream=True, timeout=IMG_FETCH_TIMEOUT_SEC)
+    except Exception as e:
+        raise ValueError("Can't download image")
+
+    if response.status_code != 200:
+        raise ValueError("Can't download image")
 
     content = response.raw.read(MAX_REQUEST_LENGTH + 1)
     if len(content) > MAX_REQUEST_LENGTH:
