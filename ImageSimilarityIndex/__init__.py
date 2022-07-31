@@ -3,6 +3,7 @@ import base64
 import io
 import requests
 import asyncio
+import time
 import azure.functions as func
 from asyncio.log import logger
 from PIL import Image
@@ -52,9 +53,14 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
             img2 = process_b64_attachment(req_body['image_b'])
 
         async with model_lock:
+            inference_start_time = time.time()
             sim_score = await eventloop.run_in_executor(None, model.calculate, img, img2)
+            inference_end_time = time.time()
 
-        logger.info("Image similarity: " + str(sim_score))
+        inference_delta = inference_end_time - inference_start_time
+
+        logger.info(
+            f"Image similarity: {str(sim_score)} (inference time - {inference_delta * 1000:.1f}) ms")
         results = {'similarity_score': sim_score}
         status_code = 200
     except Exception as e:
