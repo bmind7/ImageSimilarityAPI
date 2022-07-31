@@ -17,6 +17,33 @@ async def test_get_request_empty_body():
 
 
 @pytest.mark.asyncio
+async def test_get_wrong_warmpup_request():
+    # Construct a mock HTTP request.
+    req = func.HttpRequest(
+        method='GET',
+        body=None,
+        url='/api/imagesimilarityindex?warmuppppp=1')
+
+    resp = await main(req)
+
+    assert resp.get_body() == b'{"error": "Request body is empty"}'
+
+
+@pytest.mark.asyncio
+async def test_get_correct_warmpup_request():
+    # Construct a mock HTTP request.
+    req = func.HttpRequest(
+        method='GET',
+        body=None,
+        params={'warmup': 1},
+        url='/api/imagesimilarityindex')
+
+    resp = await main(req)
+
+    assert resp.get_body() == b'ok'
+
+
+@pytest.mark.asyncio
 async def test_post_request_empty_body():
     # Construct a mock HTTP request.
     req = func.HttpRequest(

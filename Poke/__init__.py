@@ -12,5 +12,5 @@ def main(mytimer: func.TimerRequest) -> None:
     #     logging.info('The timer is past due!')
 
     requests.get(
-        "https://move37-image-analysis-api.azurewebsites.net/api/imagesimilarityindex")
+        "https://move37-image-analysis-api.azurewebsites.net/api/imagesimilarityindex?warmup=1")
     logging.info('Poke timer trigger function ran at %s', utc_timestamp)

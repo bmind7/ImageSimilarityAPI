@@ -22,6 +22,10 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
     }
 
     try:
+        if 'warmup' in req.params:
+            logger.info("Warm up!")
+            return func.HttpResponse("ok")
+
         if req.get_body() == None:
             raise ValueError(f"Request body is empty")
 
