@@ -1,4 +1,3 @@
-* add more logging
 * make image loading parallel
 * try Pytorch JIT
 * try ONNX 
