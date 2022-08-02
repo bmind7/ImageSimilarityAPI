@@ -1,5 +1,4 @@
 * make image loading parallel
-* try Pytorch JIT
 * try ONNX 
 * try C# 
 * don't crop image
