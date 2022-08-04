@@ -7,7 +7,7 @@ import time
 import azure.functions as func
 from asyncio.log import logger
 from PIL import Image
-from .ImageSimilarityNet import model
+from .ImageSimilarityNetONNX import modelONNX
 
 MAX_REQUEST_LENGTH = 10_485_760
 IMG_FETCH_TIMEOUT_SEC = 5
@@ -57,7 +57,7 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
         async with model_lock:
             inference_start_time = time.time()
             try:
-                sim_score = await eventloop.run_in_executor(None, model.calculate, img, img2)
+                sim_score = await eventloop.run_in_executor(None, modelONNX.calculate, img, img2)
             except Exception as e:
                 logger.error(str(e))
                 raise ValueError("Can't compare images")
@@ -67,6 +67,7 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
         logger.info(
             f"Image similarity: {str(sim_score)} (inference time - {inference_delta * 1000:.1f}) ms")
+
         results = {'similarity_score': sim_score}
         status_code = 200
     except Exception as e:
@@ -98,7 +99,7 @@ def process_url_attachment(url: str) -> Image:
             "Image file is bigger than allowed limit ({MAX_REQUEST_LENGTH} bytes)")
 
     try:
-        return Image.open(io.BytesIO(content)).convert("RGB")
+        return Image.open(io.BytesIO(content))
     except Exception as e:
         logger.error(str(e))
         raise ValueError("Can't read downloaded image")
@@ -107,7 +108,7 @@ def process_url_attachment(url: str) -> Image:
 def process_b64_attachment(content: str) -> Image:
     try:
         base64_decoded = base64.b64decode(content.split(',')[1])
-        img = Image.open(io.BytesIO(base64_decoded)).convert("RGB")
+        img = Image.open(io.BytesIO(base64_decoded))
         return img
     except Exception as e:
         logger.error(str(e))
