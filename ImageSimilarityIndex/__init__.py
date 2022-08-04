@@ -10,7 +10,7 @@ from PIL import Image
 from .ImageSimilarityNetONNX import modelONNX
 
 MAX_REQUEST_LENGTH = 10_485_760
-IMG_FETCH_TIMEOUT_SEC = 5
+IMG_FETCH_TIMEOUT_SEC = 2
 
 model_lock = asyncio.Lock()
 
@@ -44,29 +44,10 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
         eventloop = asyncio.get_event_loop()
 
-        if req_body['image_a'].startswith("http"):
-            img = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_a'])
-        else:
-            img = process_b64_attachment(req_body['image_a'])
+        img_a = await eventloop.run_in_executor(None, get_pil_image, req_body['image_a'])
+        img_b = await eventloop.run_in_executor(None, get_pil_image, req_body['image_b'])
 
-        if req_body['image_b'].startswith("http"):
-            img2 = await eventloop.run_in_executor(None, process_url_attachment, req_body['image_b'])
-        else:
-            img2 = process_b64_attachment(req_body['image_b'])
-
-        async with model_lock:
-            inference_start_time = time.time()
-            try:
-                sim_score = await eventloop.run_in_executor(None, modelONNX.calculate, img, img2)
-            except Exception as e:
-                logger.error(str(e))
-                raise ValueError("Can't compare images")
-            inference_end_time = time.time()
-
-        inference_delta = inference_end_time - inference_start_time
-
-        logger.info(
-            f"Image similarity: {str(sim_score)} (inference time - {inference_delta * 1000:.1f}) ms")
+        sim_score = await get_similarity_score(eventloop, img_a, img_b)
 
         results = {'similarity_score': sim_score}
         status_code = 200
@@ -76,6 +57,13 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
         status_code = 400
 
     return func.HttpResponse(json.dumps(results), headers=headers, status_code=status_code)
+
+
+def get_pil_image(request_image: str):
+    if request_image.startswith("http"):
+        return process_url_attachment(request_image)
+    else:
+        return process_b64_attachment(request_image)
 
 
 def process_url_attachment(url: str) -> Image:
@@ -113,3 +101,21 @@ def process_b64_attachment(content: str) -> Image:
     except Exception as e:
         logger.error(str(e))
         raise ValueError("Can't parse base64 image data")
+
+
+async def get_similarity_score(eventloop, img_a, img_b):
+    async with model_lock:
+        inference_start_time = time.time()
+        try:
+            sim_score = await eventloop.run_in_executor(None, modelONNX.calculate, img_a, img_b)
+        except Exception as e:
+            logger.error(str(e))
+            raise ValueError("Can't compare images")
+        inference_end_time = time.time()
+
+    inference_delta = inference_end_time - inference_start_time
+
+    logger.info(
+        f"Image similarity: {str(sim_score)} (inference time - {inference_delta * 1000:.1f}) ms")
+
+    return sim_score
