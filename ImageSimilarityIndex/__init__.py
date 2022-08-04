@@ -30,8 +30,14 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
         eventloop = asyncio.get_event_loop()
 
-        img_a = await eventloop.run_in_executor(None, get_pil_image, req_body['image_a'])
-        img_b = await eventloop.run_in_executor(None, get_pil_image, req_body['image_b'])
+        tasks = [
+            eventloop.run_in_executor(
+                None, get_pil_image, req_body['image_a']),
+            eventloop.run_in_executor(
+                None, get_pil_image, req_body['image_b'])
+        ]
+        done_tasks, _ = await asyncio.wait(tasks)
+        img_a, img_b = map(lambda t: t.result(), done_tasks)
 
         sim_score = await get_similarity_score(eventloop, img_a, img_b)
 
