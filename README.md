@@ -40,6 +40,7 @@ As you can see, we allow multiple concurrent requests on more expensive plans. I
 * Small images give pretty good results. By using an image of 256x256 size, you can save on bandwidth and increase the speed of sending requests to the API's endpoint. The reduction in precision will be insignificant.
 
 **Release history**
+1.1.0 - 25% speed improvement
 1.0.2 - Fixed image alpha channel bug
 1.0.1 - Improved concurrency of API instance
 1.0.0 - Initial release
