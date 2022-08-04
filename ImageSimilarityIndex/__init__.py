@@ -26,21 +26,7 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
             logger.info("Warm up!")
             return func.HttpResponse("ok")
 
-        if req.get_body() == None:
-            raise ValueError(f"Request body is empty")
-
-        if len(req.get_body()) > MAX_REQUEST_LENGTH:
-            raise ValueError(
-                f"Request body is more than {MAX_REQUEST_LENGTH} bytes")
-
-        try:
-            req_body = req.get_json()
-            # Check JSON structure
-            if req_body['image_a'] == None or req_body['image_b'] == None or \
-               len(req_body['image_a']) == 0 or len(req_body['image_b']) == 0:
-                raise "Wrong JSON structure"
-        except:
-            raise ValueError("Can't parse request JSON body")
+        req_body = validate_and_get_request_body(req)
 
         eventloop = asyncio.get_event_loop()
 
@@ -57,6 +43,27 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
         status_code = 400
 
     return func.HttpResponse(json.dumps(results), headers=headers, status_code=status_code)
+
+
+def validate_and_get_request_body(req: func.HttpRequest):
+    if req.get_body() == None:
+        raise ValueError(f"Request body is empty")
+
+    if len(req.get_body()) > MAX_REQUEST_LENGTH:
+        raise ValueError(
+            f"Request body is more than {MAX_REQUEST_LENGTH} bytes")
+
+    try:
+        req_body = req.get_json()
+    except:
+        raise ValueError("Can't parse request JSON body")
+
+    # Check JSON structure
+    if req_body['image_a'] == None or req_body['image_b'] == None or \
+            len(req_body['image_a']) == 0 or len(req_body['image_b']) == 0:
+        raise "Wrong JSON structure"
+
+    return req_body
 
 
 def get_pil_image(request_image: str):
