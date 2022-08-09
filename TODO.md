@@ -1,1 +1,0 @@
-* add why it doesn't make sense to develop this api on your own
