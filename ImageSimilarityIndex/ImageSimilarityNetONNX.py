@@ -1,18 +1,21 @@
 import os
+import math
 import onnxruntime as ort
 import numpy as np
 from PIL import Image
 
-WEIGHTS_FILE = "resnet50-11ad3fa6.onnx"
+WEIGHTS_FILE = "resnet50-11ad3fa6-16.onnx"
 AZURE_FUNCTION_NAME = "ImageSimilarityIndex"
 
 
 class ImageSimilarityNetONNX():
     def __init__(self):
-        full_path = os.path.join("ImageSimilarityIndex", WEIGHTS_FILE)
+        # ======================================================
+        full_path = os.path.join(AZURE_FUNCTION_NAME, WEIGHTS_FILE)
         self.ort_sess = ort.InferenceSession(full_path)
 
-    def preprocess(self, image: Image, resize_size=232, crop_size_onnx=224):
+    def preprocess(self, image: Image, resize_size=224, crop_size=None):
+        # ======================================================
         """Perform pre-processing on raw input image
 
         :param image: raw input image
@@ -29,19 +32,18 @@ class ImageSimilarityNetONNX():
 
         # resize
         w, h = image.size
-        if w > h:
-            w_size = int(w / h * resize_size)
-            h_size = resize_size
-        else:
-            w_size = resize_size
-            h_size = int(h / w * resize_size)
-        image = image.resize((w_size, h_size), resample=Image.BILINEAR)
+        current_area = w * h
+        desired_area = resize_size * resize_size
+        ratio = math.sqrt(current_area / desired_area)
+        new_size = (int(w / ratio), int(h / ratio))
+
+        image = image.resize(new_size, resample=Image.BILINEAR)
 
         #  center  crop
-        left = (w_size - crop_size_onnx)/2
-        top = (h_size - crop_size_onnx)/2
-        image = image.crop(
-            (left, top, left+crop_size_onnx, top+crop_size_onnx))
+        if crop_size is not None:
+            left = (new_size[0] - crop_size)/2
+            top = (new_size[1] - crop_size)/2
+            image = image.crop((left, top, left+crop_size, top+crop_size))
 
         np_image = np.array(image)
 
@@ -56,12 +58,14 @@ class ImageSimilarityNetONNX():
             norm_img_data[i, :, :] = (
                 np_image[i, :, :]/255 - mean_vec[i])/std_vec[i]
 
-        return norm_img_data
+        np_image = np.expand_dims(norm_img_data, axis=0)
+        return np_image
 
-    def calculate(self, img1, img2):
-        batch = np.stack(
-            (self.preprocess(img1), self.preprocess(img2)), axis=0)
-        return self.ort_sess.run(None, {'batch': batch})[0].item()
+    def calculate(self, img1: Image, img2: Image):
+        # ======================================================
+        trans_img1 = self.preprocess(img1)
+        trans_img2 = self.preprocess(img2)
+        return self.ort_sess.run(None, {'img1': trans_img1, 'img2': trans_img2})[0].item()
 
 
 modelONNX = ImageSimilarityNetONNX()

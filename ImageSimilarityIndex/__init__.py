@@ -6,6 +6,7 @@ import asyncio
 import time
 import azure.functions as func
 from asyncio.log import logger
+from asyncio import AbstractEventLoop
 from PIL import Image
 from .ImageSimilarityNetONNX import modelONNX
 
@@ -16,6 +17,7 @@ model_lock = asyncio.Lock()
 
 
 async def main(req: func.HttpRequest) -> func.HttpResponse:
+    # ======================================================================
     headers = {
         "Content-type": "application/json",
         "Access-Control-Allow-Origin": "*"
@@ -30,6 +32,7 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
         eventloop = asyncio.get_event_loop()
 
+        # Process two images in paralel
         tasks = [
             eventloop.run_in_executor(
                 None, get_pil_image, req_body['image_a']),
@@ -52,6 +55,8 @@ async def main(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def validate_and_get_request_body(req: func.HttpRequest):
+    # ======================================================================
+    """Perform general checks of the request to be sure it's not empty and the structure is right."""
     if req.get_body() == None:
         raise ValueError(f"Request body is empty")
 
@@ -72,7 +77,8 @@ def validate_and_get_request_body(req: func.HttpRequest):
     return req_body
 
 
-def get_pil_image(request_image: str):
+def get_pil_image(request_image: str) -> Image:
+    # ======================================================================
     if request_image.startswith("http"):
         return process_url_attachment(request_image)
     else:
@@ -80,6 +86,7 @@ def get_pil_image(request_image: str):
 
 
 def process_url_attachment(url: str) -> Image:
+    # ======================================================================
     try:
         response = requests.get(
             url, stream=True, timeout=IMG_FETCH_TIMEOUT_SEC)
@@ -107,6 +114,7 @@ def process_url_attachment(url: str) -> Image:
 
 
 def process_b64_attachment(content: str) -> Image:
+    # ======================================================================
     try:
         base64_decoded = base64.b64decode(content.split(',')[1])
         img = Image.open(io.BytesIO(base64_decoded))
@@ -116,7 +124,8 @@ def process_b64_attachment(content: str) -> Image:
         raise ValueError("Can't parse base64 image data")
 
 
-async def get_similarity_score(eventloop, img_a, img_b):
+async def get_similarity_score(eventloop: AbstractEventLoop, img_a: Image, img_b: Image) -> float:
+    # ======================================================================
     async with model_lock:
         inference_start_time = time.time()
         try:

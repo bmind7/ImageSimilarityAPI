@@ -34,6 +34,7 @@ As you can see, we allow multiple concurrent requests on more expensive plans. I
 * Supported image formats: `bpm, gif, jpeg, png, pbm, tiff, tga, webp`.
 * Request size should be `10MB` or less.
 * URL should lead to images that are `10MB` or less.
+* Request timeout for the image URLs is `2 seconds`.
 
 **Tips & Tricks**
 * To speed up response from API, send an image embedded into a query as `base64` content. That way server will not spend time downloading images from the web.
