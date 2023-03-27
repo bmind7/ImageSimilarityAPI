@@ -1,6 +1,6 @@
-# Image Similarity API
+# Image Similarity API for Azure Function
  
-Our API utilizes a deep neural network to compare features of two images and calculate similarity score. We allow a large number of concurrent requests.
+API utilizes a deep neural network to compare features of two images and calculate similarity score. Allows a large number of concurrent requests.
 
 **Use cases**
 * Find duplicated files on HDD - Reduces storage usage.
